@@ -62,19 +62,19 @@ namespace Newtonsoft.Json
         internal StreamingContext _context;
         private IReferenceResolver _referenceResolver;
 
-        private Formatting? _formatting;
-        private DateFormatHandling? _dateFormatHandling;
-        private DateTimeZoneHandling? _dateTimeZoneHandling;
-        private DateParseHandling? _dateParseHandling;
-        private FloatFormatHandling? _floatFormatHandling;
-        private FloatParseHandling? _floatParseHandling;
-        private StringEscapeHandling? _stringEscapeHandling;
-        private CultureInfo _culture;
-        private int? _maxDepth;
-        private bool _maxDepthSet;
-        private bool? _checkAdditionalContent;
-        private string _dateFormatString;
-        private bool _dateFormatStringSet;
+        protected Formatting? _formatting;
+        protected DateFormatHandling? _dateFormatHandling;
+        protected DateTimeZoneHandling? _dateTimeZoneHandling;
+        protected DateParseHandling? _dateParseHandling;
+        protected FloatFormatHandling? _floatFormatHandling;
+        protected FloatParseHandling? _floatParseHandling;
+        protected StringEscapeHandling? _stringEscapeHandling;
+        protected CultureInfo _culture;
+        protected int? _maxDepth;
+        protected bool _maxDepthSet;
+        protected bool? _checkAdditionalContent;
+        protected string _dateFormatString;
+        protected bool _dateFormatStringSet;
 
         /// <summary>
         /// Occurs when the <see cref="JsonSerializer"/> errors during serialization and deserialization.
@@ -624,7 +624,7 @@ namespace Newtonsoft.Json
             return serializer;
         }
 
-        private static void ApplySerializerSettings(JsonSerializer serializer, JsonSerializerSettings settings)
+        public static void ApplySerializerSettings(JsonSerializer serializer, JsonSerializerSettings settings)
         {
             if (!CollectionUtils.IsNullOrEmpty(settings.Converters))
             {
@@ -883,7 +883,7 @@ namespace Newtonsoft.Json
             return value;
         }
 
-        private void SetupReader(JsonReader reader, out CultureInfo previousCulture, out DateTimeZoneHandling? previousDateTimeZoneHandling, out DateParseHandling? previousDateParseHandling, out FloatParseHandling? previousFloatParseHandling, out int? previousMaxDepth, out string previousDateFormatString)
+        protected void SetupReader(JsonReader reader, out CultureInfo previousCulture, out DateTimeZoneHandling? previousDateTimeZoneHandling, out DateParseHandling? previousDateParseHandling, out FloatParseHandling? previousFloatParseHandling, out int? previousMaxDepth, out string previousDateFormatString)
         {
             if (_culture != null && !_culture.Equals(reader.Culture))
             {
@@ -956,7 +956,7 @@ namespace Newtonsoft.Json
             }
         }
 
-        private void ResetReader(JsonReader reader, CultureInfo previousCulture, DateTimeZoneHandling? previousDateTimeZoneHandling, DateParseHandling? previousDateParseHandling, FloatParseHandling? previousFloatParseHandling, int? previousMaxDepth, string previousDateFormatString)
+        protected void ResetReader(JsonReader reader, CultureInfo previousCulture, DateTimeZoneHandling? previousDateTimeZoneHandling, DateParseHandling? previousDateParseHandling, FloatParseHandling? previousFloatParseHandling, int? previousMaxDepth, string previousDateFormatString)
         {
             // reset reader back to previous options
             if (previousCulture != null)

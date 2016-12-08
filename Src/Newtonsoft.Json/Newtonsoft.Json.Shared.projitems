@@ -47,7 +47,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)JsonArrayAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)JsonConstructorAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)JsonContainerAttribute.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)JsonConvert.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)JsonConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)JsonConverterAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)JsonConverterCollection.cs" />

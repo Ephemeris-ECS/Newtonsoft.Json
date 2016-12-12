@@ -1176,8 +1176,15 @@ namespace Newtonsoft.Json.Serialization
                 }
                 else
                 {
+                    object list = contract.OverrideCreator();
+
+                    if (contract.ShouldCreateWrapper)
+                    {
+                        list = contract.CreateWrapper(list);
+                    }
+
                     createdFromNonDefaultCreator = false;
-                    return (IList)contract.OverrideCreator();
+                    return (IList)list;
                 }
             }
             else if (contract.IsReadOnlyOrFixedSize)
@@ -2046,7 +2053,7 @@ namespace Newtonsoft.Json.Serialization
                                 while (e.MoveNext())
                                 {
                                     DictionaryEntry entry = e.Entry;
-                                    targetDictionary.Add(entry.Key, entry.Value);
+                                    targetDictionary[entry.Key] = entry.Value;
                                 }
                             }
                             finally
@@ -2193,6 +2200,11 @@ namespace Newtonsoft.Json.Serialization
                         throw JsonSerializationException.Create(reader, "Unexpected token when deserializing object: " + reader.TokenType);
                 }
             } while (!exit && reader.Read());
+
+            if (!exit)
+            {
+                ThrowUnexpectedEndException(reader, contract, null, "Unexpected end when deserializing object.");
+            }
 
             return propertyValues;
         }

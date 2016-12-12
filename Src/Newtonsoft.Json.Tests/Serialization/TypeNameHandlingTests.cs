@@ -43,11 +43,8 @@ using System.Runtime.Serialization.Formatters;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json.Tests.TestObjects;
-#if NETFX_CORE
-using Microsoft.VisualStudio.TestPlatform.UnitTestFramework;
-using TestFixture = Microsoft.VisualStudio.TestPlatform.UnitTestFramework.TestClassAttribute;
-using Test = Microsoft.VisualStudio.TestPlatform.UnitTestFramework.TestMethodAttribute;
-#elif DNXCORE50
+using Newtonsoft.Json.Tests.TestObjects.Organization;
+#if DNXCORE50
 using Xunit;
 using Test = Xunit.FactAttribute;
 using Assert = Newtonsoft.Json.Tests.XUnitAssert;
@@ -212,7 +209,7 @@ namespace Newtonsoft.Json.Tests.Serialization
             var result = sw.ToString();
 
             StringAssert.AreEqual(@"{
-  ""$type"": ""Newtonsoft.Json.Tests.TestObjects.WagePerson, Newtonsoft.Json.Tests"",
+  ""$type"": ""Newtonsoft.Json.Tests.TestObjects.Organization.WagePerson, Newtonsoft.Json.Tests"",
   ""HourlyWage"": 0.0,
   ""Name"": null,
   ""BirthDate"": ""0001-01-01T00:00:00"",
@@ -237,7 +234,7 @@ namespace Newtonsoft.Json.Tests.Serialization
             });
 
             StringAssert.AreEqual(@"{
-  ""$type"": ""Newtonsoft.Json.Tests.TestObjects.WagePerson, Newtonsoft.Json.Tests"",
+  ""$type"": ""Newtonsoft.Json.Tests.TestObjects.Organization.WagePerson, Newtonsoft.Json.Tests"",
   ""HourlyWage"": 0.0,
   ""Name"": null,
   ""BirthDate"": ""0001-01-01T00:00:00"",
@@ -254,7 +251,7 @@ namespace Newtonsoft.Json.Tests.Serialization
             });
 
             StringAssert.AreEqual(@"{
-  ""$type"": ""Newtonsoft.Json.Tests.TestObjects.WagePerson, Newtonsoft.Json.Tests"",
+  ""$type"": ""Newtonsoft.Json.Tests.TestObjects.Organization.WagePerson, Newtonsoft.Json.Tests"",
   ""HourlyWage"": 0.0,
   ""Name"": null,
   ""BirthDate"": ""0001-01-01T00:00:00"",
@@ -270,7 +267,7 @@ namespace Newtonsoft.Json.Tests.Serialization
                 TypeNameHandling = TypeNameHandling.Auto
             });
 
-            StringAssert.AreEqual(@"{""$type"":""Newtonsoft.Json.Tests.TestObjects.WagePerson, Newtonsoft.Json.Tests"",""HourlyWage"":0.0,""Name"":null,""BirthDate"":""0001-01-01T00:00:00"",""LastModified"":""0001-01-01T00:00:00""}", json);
+            StringAssert.AreEqual(@"{""$type"":""Newtonsoft.Json.Tests.TestObjects.Organization.WagePerson, Newtonsoft.Json.Tests"",""HourlyWage"":0.0,""Name"":null,""BirthDate"":""0001-01-01T00:00:00"",""LastModified"":""0001-01-01T00:00:00""}", json);
         }
 
         public class Wrapper
@@ -360,7 +357,7 @@ namespace Newtonsoft.Json.Tests.Serialization
             Assert.AreEqual("Name!", ((EmployeeReference)employee).Name);
         }
 
-#if !(NETFX_CORE || PORTABLE || DNXCORE50)
+#if !(PORTABLE || DNXCORE50)
         [Test]
         public void DeserializeTypeNameFromGacAssembly()
         {
@@ -1242,7 +1239,7 @@ namespace Newtonsoft.Json.Tests.Serialization
             CollectionAssert.AreEquivalent(data, d);
         }
 
-#if !(NETFX_CORE || DNXCORE50)
+#if !(DNXCORE50)
         [Test]
         public void ISerializableTypeNameHandlingTest()
         {
@@ -1307,7 +1304,7 @@ namespace Newtonsoft.Json.Tests.Serialization
 #pragma warning restore CS0618 // Type or member is obsolete
                 ContractResolver = new DefaultContractResolver
                 {
-#if !(NETFX_CORE || PORTABLE || DNXCORE50)
+#if !(PORTABLE || DNXCORE50)
                     IgnoreSerializableAttribute = true
 #endif
                 }
@@ -1338,7 +1335,7 @@ namespace Newtonsoft.Json.Tests.Serialization
             public override void BindToName(Type serializedType, out string assemblyName, out string typeName)
             {
                 assemblyName = "AssemblyName";
-#if !(NETFX_CORE || DNXCORE50)
+#if !(DNXCORE50)
                 typeName = ":::" + serializedType.Name.ToUpper(CultureInfo.InvariantCulture) + ":::";
 #else
                 typeName = ":::" + serializedType.Name.ToUpper() + ":::";
@@ -1385,7 +1382,7 @@ namespace Newtonsoft.Json.Tests.Serialization
     ""MyProperty"": 0
   },
   {
-    ""$type"": ""Newtonsoft.Json.Tests.TestObjects.Employee, Newtonsoft.Json.Tests"",
+    ""$type"": ""Newtonsoft.Json.Tests.TestObjects.Organization.Employee, Newtonsoft.Json.Tests"",
     ""FirstName"": null,
     ""LastName"": null,
     ""BirthDate"": ""2000-12-12T12:12:12Z"",
@@ -1783,7 +1780,7 @@ namespace Newtonsoft.Json.Tests.Serialization
         }
 #endif
 
-#if !(NETFX_CORE || DNXCORE50)
+#if !(DNXCORE50)
         [Test]
         public void SerializeDeserialize_DictionaryContextContainsGuid_DeserializesItemAsGuid()
         {
@@ -2054,7 +2051,69 @@ namespace Newtonsoft.Json.Tests.Serialization
 
             Assert.IsNotNull(obtainedDictionary);
         }
+
+        [Test]
+        public void SerializeNullableStructProperty_Auto()
+        {
+            JsonSerializerSettings serializerSettings = new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.Auto,
+                Formatting = Formatting.Indented
+            };
+
+            ObjectWithOptionalMessage objWithMessage = new ObjectWithOptionalMessage(new Message2("Hello!"));
+
+            string json = JsonConvert.SerializeObject(objWithMessage, serializerSettings);
+
+            StringAssert.AreEqual(@"{
+  ""Message"": {
+    ""Value"": ""Hello!""
+  }
+}", json);
+        }
+
+        [Test]
+        public void DeserializeNullableStructProperty_Auto()
+        {
+            JsonSerializerSettings serializerSettings = new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.Auto,
+                Formatting = Formatting.Indented
+            };
+
+            string json = @"{
+  ""Message"": {
+    ""Value"": ""Hello!""
+  }
+}";
+            ObjectWithOptionalMessage objWithMessage = JsonConvert.DeserializeObject<ObjectWithOptionalMessage>(json, serializerSettings);
+
+            StringAssert.AreEqual("Hello!", objWithMessage.Message.Value.Value);
+        }
 #endif
+    }
+
+    public struct Message2
+    {
+        public string Value { get; }
+
+        [JsonConstructor]
+        public Message2(string value)
+        {
+            if (value == null) throw new ArgumentNullException(nameof(value));
+
+            Value = value;
+        }
+    }
+
+    public class ObjectWithOptionalMessage
+    {
+        public Message2? Message { get; }
+
+        public ObjectWithOptionalMessage(Message2? message)
+        {
+            Message = message;
+        }
     }
 
     public class DataType
@@ -2078,7 +2137,7 @@ namespace Newtonsoft.Json.Tests.Serialization
         public string SomeProperty { get; set; }
     }
 
-#if !(NETFX_CORE || DNXCORE50)
+#if !(DNXCORE50)
     public class ParentParent
     {
         [JsonProperty(ItemTypeNameHandling = TypeNameHandling.Auto)]
@@ -2146,7 +2205,7 @@ namespace Newtonsoft.Json.Tests.Serialization
         public int Quantity { get; set; }
     }
 
-#if !(NETFX_CORE || DNXCORE50)
+#if !(DNXCORE50)
     public class SerializableWrapper
     {
         public object Content { get; set; }

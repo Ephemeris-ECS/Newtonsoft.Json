@@ -23,15 +23,11 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 #endregion
 
-#if !(PORTABLE || DNXCORE50 || NETFX_CORE || PORTABLE40)
+#if !(PORTABLE || DNXCORE50 || PORTABLE40)
 using System;
 using System.Diagnostics;
 using System.Reflection;
-#if NETFX_CORE
-using Microsoft.VisualStudio.TestPlatform.UnitTestFramework;
-using TestFixture = Microsoft.VisualStudio.TestPlatform.UnitTestFramework.TestClassAttribute;
-using Test = Microsoft.VisualStudio.TestPlatform.UnitTestFramework.TestMethodAttribute;
-#elif DNXCORE50
+#if DNXCORE50
 using Xunit;
 using Test = Xunit.FactAttribute;
 using Assert = Newtonsoft.Json.Tests.XUnitAssert;
@@ -41,6 +37,7 @@ using NUnit.Framework;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json.Utilities;
 using Newtonsoft.Json.Tests.TestObjects;
+using Newtonsoft.Json.Tests.TestObjects.Organization;
 using Newtonsoft.Json.Tests.Serialization;
 #if NET20
 using Newtonsoft.Json.Utilities.LinqBridge;
@@ -107,7 +104,7 @@ namespace Newtonsoft.Json.Tests.Utilities
                 Func<object, object> setter = DynamicReflectionDelegateFactory.Instance.CreateGet<object>(typeof(Movie).GetProperty("Name"));
 
                 setter(p);
-            }, "Unable to cast object of type 'Newtonsoft.Json.Tests.TestObjects.Person' to type 'Newtonsoft.Json.Tests.TestObjects.Movie'.");
+            }, "Unable to cast object of type 'Newtonsoft.Json.Tests.TestObjects.Organization.Person' to type 'Newtonsoft.Json.Tests.TestObjects.Movie'.");
         }
 
         [Test]
@@ -127,7 +124,7 @@ namespace Newtonsoft.Json.Tests.Utilities
                 setter(p, "Hi");
 
                 Assert.AreEqual(p.Name, "Hi");
-            }, "Unable to cast object of type 'Newtonsoft.Json.Tests.TestObjects.Person' to type 'Newtonsoft.Json.Tests.TestObjects.Movie'.");
+            }, "Unable to cast object of type 'Newtonsoft.Json.Tests.TestObjects.Organization.Person' to type 'Newtonsoft.Json.Tests.TestObjects.Movie'.");
         }
 
         [Test]

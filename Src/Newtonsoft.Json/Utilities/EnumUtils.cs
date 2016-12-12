@@ -43,10 +43,10 @@ namespace Newtonsoft.Json.Utilities
         private static BidirectionalDictionary<string, string> InitializeEnumType(Type type)
         {
             BidirectionalDictionary<string, string> map = new BidirectionalDictionary<string, string>(
-                StringComparer.OrdinalIgnoreCase,
-                StringComparer.OrdinalIgnoreCase);
+                StringComparer.Ordinal,
+                StringComparer.Ordinal);
 
-            foreach (FieldInfo f in type.GetFields())
+            foreach (FieldInfo f in type.GetFields(BindingFlags.Public | BindingFlags.Static))
             {
                 string n1 = f.Name;
                 string n2;
@@ -160,9 +160,7 @@ namespace Newtonsoft.Json.Utilities
 
             List<object> values = new List<object>();
 
-            var fields = enumType.GetFields().Where(f => f.IsLiteral);
-
-            foreach (FieldInfo field in fields)
+            foreach (FieldInfo field in enumType.GetFields(BindingFlags.Public | BindingFlags.Static))
             {
                 object value = field.GetValue(enumType);
                 values.Add(value);
@@ -180,9 +178,7 @@ namespace Newtonsoft.Json.Utilities
 
             List<string> values = new List<string>();
 
-            var fields = enumType.GetFields().Where(f => f.IsLiteral);
-
-            foreach (FieldInfo field in fields)
+            foreach (FieldInfo field in enumType.GetFields(BindingFlags.Public | BindingFlags.Static))
             {
                 values.Add(field.Name);
             }

@@ -30,11 +30,7 @@ using System.Numerics;
 #endif
 using System.Text;
 using Newtonsoft.Json.Converters;
-#if NETFX_CORE
-using Microsoft.VisualStudio.TestPlatform.UnitTestFramework;
-using TestFixture = Microsoft.VisualStudio.TestPlatform.UnitTestFramework.TestClassAttribute;
-using Test = Microsoft.VisualStudio.TestPlatform.UnitTestFramework.TestMethodAttribute;
-#elif DNXCORE50
+#if DNXCORE50
 using Xunit;
 using Test = Xunit.FactAttribute;
 using Assert = Newtonsoft.Json.Tests.XUnitAssert;
@@ -482,6 +478,7 @@ namespace Newtonsoft.Json.Tests.Linq
             Assert.AreEqual((ulong)1L, (new JValue(1).ToObject(typeof(ulong?))));
             Assert.AreEqual((sbyte)1L, (new JValue(1).ToObject(typeof(sbyte))));
             Assert.AreEqual((sbyte)1L, (new JValue(1).ToObject(typeof(sbyte?))));
+            Assert.AreEqual(null, (JValue.CreateNull().ToObject(typeof(sbyte?))));
             Assert.AreEqual((byte)1L, (new JValue(1).ToObject(typeof(byte))));
             Assert.AreEqual((byte)1L, (new JValue(1).ToObject(typeof(byte?))));
             Assert.AreEqual((short)1L, (new JValue(1).ToObject(typeof(short))));
@@ -1149,7 +1146,7 @@ namespace Newtonsoft.Json.Tests.Linq
             Assert.IsTrue(a.DeepEquals(a2));
         }
 
-#if !(NETFX_CORE || PORTABLE || DNXCORE50 || PORTABLE40)
+#if !(PORTABLE || DNXCORE50 || PORTABLE40)
         [Test]
         public void Clone()
         {

@@ -92,7 +92,7 @@ namespace Newtonsoft.Json.Serialization
     }
 
     /// <summary>
-    /// Used by <see cref="JsonSerializer"/> to resolves a <see cref="JsonContract"/> for a given <see cref="System.Type"/>.
+    /// Used by <see cref="JsonSerializer"/> to resolve a <see cref="JsonContract"/> for a given <see cref="System.Type"/>.
     /// </summary>
     public class DefaultContractResolver : IContractResolver
     {
@@ -651,7 +651,7 @@ namespace Newtonsoft.Json.Serialization
         /// <returns>Properties for the given <see cref="ConstructorInfo"/>.</returns>
         protected virtual IList<JsonProperty> CreateConstructorParameters(ConstructorInfo constructor, JsonPropertyCollection memberProperties)
         {
-            var constructorParameters = constructor.GetParameters();
+            ParameterInfo[] constructorParameters = constructor.GetParameters();
 
             JsonPropertyCollection parameterCollection = new JsonPropertyCollection(constructor.DeclaringType);
 

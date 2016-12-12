@@ -34,11 +34,7 @@ using System.Runtime.Serialization;
 using System.Text;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
-#if NETFX_CORE
-using Microsoft.VisualStudio.TestPlatform.UnitTestFramework;
-using TestFixture = Microsoft.VisualStudio.TestPlatform.UnitTestFramework.TestClassAttribute;
-using Test = Microsoft.VisualStudio.TestPlatform.UnitTestFramework.TestMethodAttribute;
-#elif DNXCORE50
+#if DNXCORE50
 using Xunit;
 using Test = Xunit.FactAttribute;
 using Assert = Newtonsoft.Json.Tests.XUnitAssert;
@@ -1017,7 +1013,8 @@ namespace Newtonsoft.Json.Tests.Documentation
             IList<SearchResult> searchResults = new List<SearchResult>();
             foreach (JToken result in results)
             {
-                SearchResult searchResult = JsonConvert.DeserializeObject<SearchResult>(result.ToString());
+                // JToken.ToObject is a helper method that uses JsonSerializer internally
+                SearchResult searchResult = result.ToObject<SearchResult>();
                 searchResults.Add(searchResult);
             }
 

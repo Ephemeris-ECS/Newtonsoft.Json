@@ -30,16 +30,12 @@ using Newtonsoft.Json.Utilities.LinqBridge;
 using System.Linq;
 #endif
 using System.Text;
-#if !(NETFX_CORE || DNXCORE50 || PORTABLE40)
+#if !(DNXCORE50 || PORTABLE40)
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json.Tests.Serialization;
 using Newtonsoft.Json.Tests.TestObjects;
-#if NETFX_CORE
-using Microsoft.VisualStudio.TestPlatform.UnitTestFramework;
-using TestFixture = Microsoft.VisualStudio.TestPlatform.UnitTestFramework.TestClassAttribute;
-using Test = Microsoft.VisualStudio.TestPlatform.UnitTestFramework.TestMethodAttribute;
-#elif DNXCORE50
+#if DNXCORE50
 using Xunit;
 using Test = Xunit.FactAttribute;
 using Assert = Newtonsoft.Json.Tests.XUnitAssert;
@@ -2703,6 +2699,35 @@ namespace Newtonsoft.Json.Tests.Converters
             string json2 = JsonConvert.SerializeXmlNode(node);
 
             Assert.AreEqual(json, json2);
+        }
+
+        [Test]
+        public void RootPropertyError()
+        {
+            string json = @"{
+  ""$id"": ""1"",
+  ""AOSLocaleName"": ""en-US"",
+  ""AXLanguage"": ""EN-AU"",
+  ""Company"": ""AURE"",
+  ""CompanyTimeZone"": 8,
+  ""CurrencyInfo"": {
+    ""$id"": ""2"",
+    ""CurrencyCode"": ""AUD"",
+    ""Description"": ""Australian Dollar"",
+    ""ExchangeRate"": 100.0,
+    ""ISOCurrencyCode"": ""AUD"",
+    ""Prefix"": """",
+    ""Suffix"": """"
+  },
+  ""IsSysAdmin"": true,
+  ""UserId"": ""lamar.miller"",
+  ""UserPreferredCalendar"": 0,
+  ""UserPreferredTimeZone"": 8
+}";
+
+            ExceptionAssert.Throws<JsonSerializationException>(
+                () => JsonConvert.DeserializeXmlNode(json),
+                "JSON root object has property '$id' that will be converted to an attribute. A root object cannot have any attribute properties. Consider specifing a DeserializeRootElementName. Path '$id', line 2, position 12.");
         }
 
         [Test]

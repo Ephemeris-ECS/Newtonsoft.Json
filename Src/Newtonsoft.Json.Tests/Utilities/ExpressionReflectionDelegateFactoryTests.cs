@@ -29,11 +29,7 @@ using System.Linq;
 using System;
 using System.Diagnostics;
 using System.Reflection;
-#if NETFX_CORE
-using Microsoft.VisualStudio.TestPlatform.UnitTestFramework;
-using TestFixture = Microsoft.VisualStudio.TestPlatform.UnitTestFramework.TestClassAttribute;
-using Test = Microsoft.VisualStudio.TestPlatform.UnitTestFramework.TestMethodAttribute;
-#elif DNXCORE50
+#if DNXCORE50
 using Xunit;
 using Test = Xunit.FactAttribute;
 using Assert = Newtonsoft.Json.Tests.XUnitAssert;
@@ -43,6 +39,7 @@ using NUnit.Framework;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json.Utilities;
 using Newtonsoft.Json.Tests.TestObjects;
+using Newtonsoft.Json.Tests.TestObjects.Organization;
 using Newtonsoft.Json.Tests.Serialization;
 
 namespace Newtonsoft.Json.Tests.Utilities
@@ -298,7 +295,7 @@ namespace Newtonsoft.Json.Tests.Utilities
                 },
                 new[]
                 {
-                    "Unable to cast object of type 'Newtonsoft.Json.Tests.TestObjects.Person' to type 'Newtonsoft.Json.Tests.TestObjects.Movie'.",
+                    "Unable to cast object of type 'Newtonsoft.Json.Tests.TestObjects.Organization.Person' to type 'Newtonsoft.Json.Tests.TestObjects.Movie'.",
                     "Cannot cast from source type to destination type." // mono
                 });
         }
@@ -324,7 +321,7 @@ namespace Newtonsoft.Json.Tests.Utilities
                 },
                 new[]
                 {
-                    "Unable to cast object of type 'Newtonsoft.Json.Tests.TestObjects.Person' to type 'Newtonsoft.Json.Tests.TestObjects.Movie'.",
+                    "Unable to cast object of type 'Newtonsoft.Json.Tests.TestObjects.Organization.Person' to type 'Newtonsoft.Json.Tests.TestObjects.Movie'.",
                     "Cannot cast from source type to destination type." // mono
                 });
         }

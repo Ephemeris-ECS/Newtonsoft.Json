@@ -98,13 +98,13 @@ namespace Newtonsoft.Json.Utilities
         {
             ValidationUtils.ArgumentNotNull(propertyInfo, nameof(propertyInfo));
 
-            MethodInfo m = propertyInfo.GetGetMethod();
+            MethodInfo m = propertyInfo.GetGetMethod(true);
             if (m != null && m.IsVirtual)
             {
                 return true;
             }
 
-            m = propertyInfo.GetSetMethod();
+            m = propertyInfo.GetSetMethod(true);
             if (m != null && m.IsVirtual)
             {
                 return true;
@@ -117,13 +117,13 @@ namespace Newtonsoft.Json.Utilities
         {
             ValidationUtils.ArgumentNotNull(propertyInfo, nameof(propertyInfo));
 
-            MethodInfo m = propertyInfo.GetGetMethod();
+            MethodInfo m = propertyInfo.GetGetMethod(true);
             if (m != null)
             {
                 return m.GetBaseDefinition();
             }
 
-            m = propertyInfo.GetSetMethod();
+            m = propertyInfo.GetSetMethod(true);
             if (m != null)
             {
                 return m.GetBaseDefinition();
@@ -662,7 +662,7 @@ namespace Newtonsoft.Json.Utilities
             // update: I think this is fixed in .NET 3.5 SP1 - leave this in for now...
             List<MemberInfo> distinctMembers = new List<MemberInfo>(targetMembers.Count);
 
-            foreach (var groupedMember in targetMembers.GroupBy(m => m.Name))
+            foreach (IGrouping<string, MemberInfo> groupedMember in targetMembers.GroupBy(m => m.Name))
             {
                 int count = groupedMember.Count();
                 IList<MemberInfo> members = groupedMember.ToList();
@@ -1017,31 +1017,31 @@ namespace Newtonsoft.Json.Utilities
                 {
                     PropertyInfo subTypeProperty = propertyInfo;
 
-                    if (!IsPublic(subTypeProperty))
+                    if (!subTypeProperty.IsVirtual())
                     {
-                        // have to test on name rather than reference because instances are different
-                        // depending on the type that GetProperties was called on
-                        int index = initialProperties.IndexOf(p => p.Name == subTypeProperty.Name);
-                        if (index == -1)
+                        if (!IsPublic(subTypeProperty))
                         {
-                            initialProperties.Add(subTypeProperty);
-                        }
-                        else
-                        {
-                            PropertyInfo childProperty = initialProperties[index];
-                            // don't replace public child with private base
-                            if (!IsPublic(childProperty))
+                            // have to test on name rather than reference because instances are different
+                            // depending on the type that GetProperties was called on
+                            int index = initialProperties.IndexOf(p => p.Name == subTypeProperty.Name);
+                            if (index == -1)
                             {
-                                // replace nonpublic properties for a child, but gotten from
-                                // the parent with the one from the child
-                                // the property gotten from the child will have access to private getter/setter
-                                initialProperties[index] = subTypeProperty;
+                                initialProperties.Add(subTypeProperty);
+                            }
+                            else
+                            {
+                                PropertyInfo childProperty = initialProperties[index];
+                                // don't replace public child with private base
+                                if (!IsPublic(childProperty))
+                                {
+                                    // replace nonpublic properties for a child, but gotten from
+                                    // the parent with the one from the child
+                                    // the property gotten from the child will have access to private getter/setter
+                                    initialProperties[index] = subTypeProperty;
+                                }
                             }
                         }
-                    }
-                    else
-                    {
-                        if (!subTypeProperty.IsVirtual())
+                        else
                         {
                             int index = initialProperties.IndexOf(p => p.Name == subTypeProperty.Name
                                                                        && p.DeclaringType == subTypeProperty.DeclaringType);
@@ -1051,17 +1051,19 @@ namespace Newtonsoft.Json.Utilities
                                 initialProperties.Add(subTypeProperty);
                             }
                         }
-                        else
-                        {
-                            int index = initialProperties.IndexOf(p => p.Name == subTypeProperty.Name
-                                                                       && p.IsVirtual()
-                                                                       && p.GetBaseDefinition() != null
-                                                                       && p.GetBaseDefinition().DeclaringType.IsAssignableFrom(subTypeProperty.GetBaseDefinition().DeclaringType));
+                    }
+                    else
+                    {
+                        Type subTypePropertyDeclaringType = subTypeProperty.GetBaseDefinition()?.DeclaringType ?? subTypeProperty.DeclaringType;
 
-                            if (index == -1)
-                            {
-                                initialProperties.Add(subTypeProperty);
-                            }
+                        int index = initialProperties.IndexOf(p => p.Name == subTypeProperty.Name
+                                                                   && p.IsVirtual()
+                                                                   && (p.GetBaseDefinition()?.DeclaringType ?? p.DeclaringType).IsAssignableFrom(subTypePropertyDeclaringType));
+
+                        // don't add a virtual property that has an override
+                        if (index == -1)
+                        {
+                            initialProperties.Add(subTypeProperty);
                         }
                     }
                 }

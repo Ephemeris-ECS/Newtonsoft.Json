@@ -51,10 +51,11 @@ namespace Newtonsoft.Json
     /// <example>
     ///   <code lang="cs" source="..\Src\Newtonsoft.Json.Tests\Documentation\SerializationTests.cs" region="SerializeObject" title="Serializing and Deserializing JSON with JsonConvert" />
     /// </example>
-    public static class JsonConvert
+    internal static class JsonConvert
     {
         /// <summary>
         /// Gets or sets a function that creates default <see cref="JsonSerializerSettings"/>.
+        /// 
         /// Default settings are automatically used by serialization methods on <see cref="JsonConvert"/>,
         /// and <see cref="JToken.ToObject{T}()"/> and <see cref="JToken.FromObject(object)"/> on <see cref="JToken"/>.
         /// To serialize without using any default settings create a <see cref="JsonSerializer"/> with

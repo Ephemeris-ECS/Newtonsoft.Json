@@ -28,7 +28,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Converters\ExpandoObjectConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Converters\IsoDateTimeConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Converters\JavaScriptDateTimeConverter.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Converters\JsonValueConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Converters\KeyValuePairConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Converters\RegexConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Converters\StringEnumConverter.cs" />
@@ -47,6 +46,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)JsonArrayAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)JsonConstructorAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)JsonContainerAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)JsonConvert.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)JsonConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)JsonConverterAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)JsonConverterCollection.cs" />
@@ -94,6 +94,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Linq\JsonPath\QueryFilter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\JsonPath\RootFilter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\JsonPath\ScanFilter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Linq\JsonPath\ScanMultipleFilter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\JToken.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\JTokenEqualityComparer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\JTokenReader.cs" />

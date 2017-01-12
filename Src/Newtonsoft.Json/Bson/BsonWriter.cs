@@ -1,4 +1,4 @@
-﻿#region License
+#region License
 // Copyright (c) 2007 James Newton-King
 //
 // Permission is hereby granted, free of charge, to any person
@@ -27,7 +27,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-#if !(NET20 || NET35 || PORTABLE40 || PORTABLE) || NETSTANDARD1_1
+#if HAVE_BIG_INTEGER
 using System.Numerics;
 #endif
 using System.Text;
@@ -38,7 +38,7 @@ using System.Globalization;
 namespace Newtonsoft.Json.Bson
 {
     /// <summary>
-    /// Represents a writer that provides a fast, non-cached, forward-only way of generating JSON data.
+    /// Represents a writer that provides a fast, non-cached, forward-only way of generating BSON data.
     /// </summary>
     public class BsonWriter : JsonWriter
     {
@@ -62,7 +62,7 @@ namespace Newtonsoft.Json.Bson
         /// <summary>
         /// Initializes a new instance of the <see cref="BsonWriter"/> class.
         /// </summary>
-        /// <param name="stream">The stream.</param>
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         public BsonWriter(Stream stream)
         {
             ValidationUtils.ArgumentNotNull(stream, nameof(stream));
@@ -72,7 +72,7 @@ namespace Newtonsoft.Json.Bson
         /// <summary>
         /// Initializes a new instance of the <see cref="BsonWriter"/> class.
         /// </summary>
-        /// <param name="writer">The writer.</param>
+        /// <param name="writer">The <see cref="BinaryWriter"/> to write to.</param>
         public BsonWriter(BinaryWriter writer)
         {
             ValidationUtils.ArgumentNotNull(writer, nameof(writer));
@@ -80,7 +80,7 @@ namespace Newtonsoft.Json.Bson
         }
 
         /// <summary>
-        /// Flushes whatever is in the buffer to the underlying streams and also flushes the underlying stream.
+        /// Flushes whatever is in the buffer to the underlying <see cref="Stream"/> and also flushes the underlying stream.
         /// </summary>
         public override void Flush()
         {
@@ -170,15 +170,16 @@ namespace Newtonsoft.Json.Bson
         }
 
         /// <summary>
-        /// Closes this stream and the underlying stream.
+        /// Closes this writer.
+        /// If <see cref="JsonWriter.CloseOutput"/> is set to <c>true</c>, the underlying <see cref="Stream"/> is also closed.
         /// </summary>
         public override void Close()
         {
             base.Close();
 
-            if (CloseOutput && _writer != null)
+            if (CloseOutput)
             {
-                _writer.Close();
+                _writer?.Close();
             }
         }
 
@@ -202,9 +203,10 @@ namespace Newtonsoft.Json.Bson
         {
             if (_parent != null)
             {
-                if (_parent is BsonObject)
+                BsonObject bo = _parent as BsonObject;
+                if (bo != null)
                 {
-                    ((BsonObject)_parent).Add(_propertyName, token);
+                    bo.Add(_propertyName, token);
                     _propertyName = null;
                 }
                 else
@@ -232,7 +234,7 @@ namespace Newtonsoft.Json.Bson
         /// <param name="value">The <see cref="Object"/> value to write.</param>
         public override void WriteValue(object value)
         {
-#if !(NET20 || NET35 || PORTABLE || PORTABLE40) || NETSTANDARD1_1
+#if HAVE_BIG_INTEGER
             if (value is BigInteger)
             {
                 InternalWriteValue(JsonToken.Integer);
@@ -251,7 +253,7 @@ namespace Newtonsoft.Json.Bson
         public override void WriteNull()
         {
             base.WriteNull();
-            AddValue(null, BsonType.Null);
+            AddToken(BsonEmpty.Null);
         }
 
         /// <summary>
@@ -260,7 +262,7 @@ namespace Newtonsoft.Json.Bson
         public override void WriteUndefined()
         {
             base.WriteUndefined();
-            AddValue(null, BsonType.Undefined);
+            AddToken(BsonEmpty.Undefined);
         }
 
         /// <summary>
@@ -270,14 +272,7 @@ namespace Newtonsoft.Json.Bson
         public override void WriteValue(string value)
         {
             base.WriteValue(value);
-            if (value == null)
-            {
-                AddValue(null, BsonType.Null);
-            }
-            else
-            {
-                AddToken(new BsonString(value, true));
-            }
+            AddToken(value == null ? BsonEmpty.Null : new BsonString(value, true));
         }
 
         /// <summary>
@@ -359,7 +354,7 @@ namespace Newtonsoft.Json.Bson
         public override void WriteValue(bool value)
         {
             base.WriteValue(value);
-            AddValue(value, BsonType.Boolean);
+            AddToken(value ? BsonBoolean.True : BsonBoolean.False);
         }
 
         /// <summary>
@@ -391,7 +386,7 @@ namespace Newtonsoft.Json.Bson
         {
             base.WriteValue(value);
             string s = null;
-#if !(DOTNET || PORTABLE40 || PORTABLE)
+#if HAVE_CHAR_TO_STRING_WITH_CULTURE
             s = value.ToString(CultureInfo.InvariantCulture);
 #else
             s = value.ToString();
@@ -441,7 +436,7 @@ namespace Newtonsoft.Json.Bson
             AddValue(value, BsonType.Date);
         }
 
-#if !NET20
+#if HAVE_DATE_TIME_OFFSET
         /// <summary>
         /// Writes a <see cref="DateTimeOffset"/> value.
         /// </summary>
@@ -459,6 +454,12 @@ namespace Newtonsoft.Json.Bson
         /// <param name="value">The <see cref="Byte"/>[] value to write.</param>
         public override void WriteValue(byte[] value)
         {
+            if (value == null)
+            {
+                WriteNull();
+                return;
+            }
+
             base.WriteValue(value);
             AddToken(new BsonBinary(value, BsonBinaryType.Binary));
         }
@@ -489,6 +490,12 @@ namespace Newtonsoft.Json.Bson
         /// <param name="value">The <see cref="Uri"/> value to write.</param>
         public override void WriteValue(Uri value)
         {
+            if (value == null)
+            {
+                WriteNull();
+                return;
+            }
+
             base.WriteValue(value);
             AddToken(new BsonString(value.ToString(), true));
         }

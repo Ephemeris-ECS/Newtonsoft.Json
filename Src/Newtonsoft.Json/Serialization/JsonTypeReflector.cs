@@ -29,11 +29,11 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Reflection;
 using System.Security;
-#if !(DOTNET || PORTABLE || PORTABLE40)
+#if HAVE_CAS
 using System.Security.Permissions;
 #endif
 using Newtonsoft.Json.Utilities;
-#if NET20
+#if !HAVE_LINQ
 using Newtonsoft.Json.Utilities.LinqBridge;
 #else
 using System.Linq;
@@ -69,7 +69,7 @@ namespace Newtonsoft.Json.Serialization
             return CachedAttributeGetter<T>.GetAttribute(attributeProvider);
         }
 
-#if !NET20
+#if HAVE_DATA_CONTRACTS
         public static DataContractAttribute GetDataContractAttribute(Type type)
         {
             // DataContractAttribute does not have inheritance
@@ -133,7 +133,7 @@ namespace Newtonsoft.Json.Serialization
                 return objectAttribute.MemberSerialization;
             }
 
-#if !NET20
+#if HAVE_DATA_CONTRACTS
             DataContractAttribute dataContractAttribute = GetDataContractAttribute(objectType);
             if (dataContractAttribute != null)
             {
@@ -141,7 +141,7 @@ namespace Newtonsoft.Json.Serialization
             }
 #endif
 
-#if !(DOTNET || PORTABLE40 || PORTABLE)
+#if HAVE_BINARY_SERIALIZATION
             if (!ignoreSerializableAttribute)
             {
                 SerializableAttribute serializableAttribute = GetCachedAttribute<SerializableAttribute>(objectType);
@@ -173,11 +173,11 @@ namespace Newtonsoft.Json.Serialization
         }
 
         /// <summary>
-        /// Lookup and create an instance of the JsonConverter type described by the argument.
+        /// Lookup and create an instance of the <see cref="JsonConverter"/> type described by the argument.
         /// </summary>
-        /// <param name="converterType">The JsonConverter type to create.</param>
+        /// <param name="converterType">The <see cref="JsonConverter"/> type to create.</param>
         /// <param name="converterArgs">Optional arguments to pass to an initializing constructor of the JsonConverter.
-        /// If null, the default constructor is used.</param>
+        /// If <c>null</c>, the default constructor is used.</param>
         public static JsonConverter CreateJsonConverterInstance(Type converterType, object[] converterArgs)
         {
             Func<object[], object> converterCreator = CreatorCache.Get(converterType);
@@ -245,7 +245,7 @@ namespace Newtonsoft.Json.Serialization
             };
         }
 
-#if !(PORTABLE40 || PORTABLE)
+#if HAVE_COMPONENT_MODEL
         public static TypeConverter GetTypeConverter(Type type)
         {
             return TypeDescriptor.GetConverter(type);
@@ -397,14 +397,14 @@ namespace Newtonsoft.Json.Serialization
 
         public static bool DynamicCodeGeneration
         {
-#if !(NET20 || NET35 || PORTABLE)
+#if HAVE_SECURITY_SAFE_CRITICAL_ATTRIBUTE
             [SecuritySafeCritical]
 #endif
                 get
             {
                 if (_dynamicCodeGeneration == null)
                 {
-#if !(DOTNET || PORTABLE40 || PORTABLE)
+#if HAVE_CAS
                     try
                     {
                         new ReflectionPermission(ReflectionPermissionFlag.MemberAccess).Demand();

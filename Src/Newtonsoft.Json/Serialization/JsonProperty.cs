@@ -27,7 +27,7 @@ using System;
 using System.Reflection;
 using Newtonsoft.Json.Utilities;
 
-#if NET20
+#if !HAVE_LINQ
 using Newtonsoft.Json.Utilities.LinqBridge;
 #endif
 
@@ -113,7 +113,7 @@ namespace Newtonsoft.Json.Serialization
 
         /// <summary>
         /// Gets or sets the <see cref="JsonConverter" /> for the property.
-        /// If set this converter takes presidence over the contract converter for the property type.
+        /// If set this converter takes precedence over the contract converter for the property type.
         /// </summary>
         /// <value>The converter.</value>
         public JsonConverter Converter { get; set; }
@@ -235,9 +235,9 @@ namespace Newtonsoft.Json.Serialization
         public TypeNameHandling? TypeNameHandling { get; set; }
 
         /// <summary>
-        /// Gets or sets a predicate used to determine whether the property should be serialize.
+        /// Gets or sets a predicate used to determine whether the property should be serialized.
         /// </summary>
-        /// <value>A predicate used to determine whether the property should be serialize.</value>
+        /// <value>A predicate used to determine whether the property should be serialized.</value>
         public Predicate<object> ShouldSerialize { get; set; }
 
         /// <summary>
@@ -282,13 +282,13 @@ namespace Newtonsoft.Json.Serialization
         public bool? ItemIsReference { get; set; }
 
         /// <summary>
-        /// Gets or sets the the type name handling used when serializing the property's collection items.
+        /// Gets or sets the type name handling used when serializing the property's collection items.
         /// </summary>
         /// <value>The collection's items type name handling.</value>
         public TypeNameHandling? ItemTypeNameHandling { get; set; }
 
         /// <summary>
-        /// Gets or sets the the reference loop handling used when serializing the property's collection items.
+        /// Gets or sets the reference loop handling used when serializing the property's collection items.
         /// </summary>
         /// <value>The collection's items reference loop handling.</value>
         public ReferenceLoopHandling? ItemReferenceLoopHandling { get; set; }

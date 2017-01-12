@@ -26,25 +26,25 @@
 using System;
 using System.Collections;
 using Newtonsoft.Json.Schema;
-#if !(NET35 || NET20 || PORTABLE || PORTABLE40)
+#if HAVE_CONCURRENT_COLLECTIONS
 using System.Collections.Concurrent;
 #endif
 using System.Collections.Generic;
 using System.ComponentModel;
-#if !(NET35 || NET20 || PORTABLE40)
+#if HAVE_DYNAMIC
 using System.Dynamic;
 #endif
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.Serialization;
-#if !(DOTNET || PORTABLE || PORTABLE40)
+#if HAVE_CAS
 using System.Security.Permissions;
 #endif
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Utilities;
 using Newtonsoft.Json.Linq;
 using System.Runtime.CompilerServices;
-#if NET20
+#if !HAVE_LINQ
 using Newtonsoft.Json.Utilities.LinqBridge;
 #else
 using System.Linq;
@@ -107,21 +107,21 @@ namespace Newtonsoft.Json.Serialization
 
         private static readonly JsonConverter[] BuiltInConverters =
         {
-#if !(NET20 || DOTNET || PORTABLE40 || PORTABLE)
+#if HAVE_ENTITY_FRAMEWORK
             new EntityKeyMemberConverter(),
 #endif
-#if !(NET35 || NET20 || PORTABLE40)
+#if HAVE_DYNAMIC
             new ExpandoObjectConverter(),
 #endif
-#if !(PORTABLE40)
+#if (HAVE_XML_DOCUMENT || HAVE_XLINQ)
             new XmlNodeConverter(),
 #endif
-#if !(DOTNET || PORTABLE40 || PORTABLE)
+#if HAVE_ADO_NET
             new BinaryConverter(),
             new DataSetConverter(),
             new DataTableConverter(),
 #endif
-#if !(NET35 || NET20)
+#if HAVE_FSHARP_TYPES
             new DiscriminatedUnionConverter(),
 #endif
             new KeyValuePairConverter(),
@@ -166,7 +166,7 @@ namespace Newtonsoft.Json.Serialization
         /// </value>
         public bool SerializeCompilerGeneratedMembers { get; set; }
 
-#if !(DOTNET || PORTABLE || PORTABLE40)
+#if HAVE_BINARY_SERIALIZATION
         /// <summary>
         /// Gets or sets a value indicating whether to ignore the <see cref="ISerializable"/> interface when serializing and deserializing types.
         /// </summary>
@@ -195,7 +195,7 @@ namespace Newtonsoft.Json.Serialization
         /// </summary>
         public DefaultContractResolver()
         {
-#if !(DOTNET || PORTABLE || PORTABLE40)
+#if HAVE_BINARY_SERIALIZATION
             IgnoreSerializableAttribute = true;
 #endif
 
@@ -211,7 +211,7 @@ namespace Newtonsoft.Json.Serialization
         /// If set to <c>true</c> the <see cref="DefaultContractResolver"/> will use a cached shared with other resolvers of the same type.
         /// Sharing the cache will significantly improve performance with multiple resolver instances because expensive reflection will only
         /// happen once. This setting can cause unexpected behavior if different instances of the resolver are suppose to produce different
-        /// results. When set to false it is highly recommended to reuse <see cref="DefaultContractResolver"/> instances with the <see cref="JsonSerializer"/>.
+        /// results. When set to <c>false</c> it is highly recommended to reuse <see cref="DefaultContractResolver"/> instances with the <see cref="JsonSerializer"/>.
         /// </param>
         [ObsoleteAttribute("DefaultContractResolver(bool) is obsolete. Use the parameterless constructor and cache instances of the contract resolver within your application for optimal performance.")]
         public DefaultContractResolver(bool shareCache)
@@ -277,7 +277,7 @@ namespace Newtonsoft.Json.Serialization
         protected virtual List<MemberInfo> GetSerializableMembers(Type objectType)
         {
             bool ignoreSerializableAttribute;
-#if !(DOTNET || PORTABLE || PORTABLE40)
+#if HAVE_BINARY_SERIALIZATION
             ignoreSerializableAttribute = IgnoreSerializableAttribute;
 #else
             ignoreSerializableAttribute = true;
@@ -285,14 +285,14 @@ namespace Newtonsoft.Json.Serialization
 
             MemberSerialization memberSerialization = JsonTypeReflector.GetObjectMemberSerialization(objectType, ignoreSerializableAttribute);
 
-            List<MemberInfo> allMembers = ReflectionUtils.GetFieldsAndProperties(objectType, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
-                .Where(m => !ReflectionUtils.IsIndexedProperty(m)).ToList();
+            IEnumerable<MemberInfo> allMembers = ReflectionUtils.GetFieldsAndProperties(objectType, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
+                .Where(m => !ReflectionUtils.IsIndexedProperty(m));
 
             List<MemberInfo> serializableMembers = new List<MemberInfo>();
 
             if (memberSerialization != MemberSerialization.Fields)
             {
-#if !NET20
+#if HAVE_DATA_CONTRACTS
                 DataContractAttribute dataContractAttribute = JsonTypeReflector.GetDataContractAttribute(objectType);
 #endif
 
@@ -323,7 +323,7 @@ namespace Newtonsoft.Json.Serialization
                             {
                                 serializableMembers.Add(member);
                             }
-#if !NET20
+#if HAVE_DATA_CONTRACTS
                             else if (dataContractAttribute != null && JsonTypeReflector.GetAttribute<DataMemberAttribute>(member) != null)
                             {
                                 serializableMembers.Add(member);
@@ -337,7 +337,7 @@ namespace Newtonsoft.Json.Serialization
                     }
                 }
 
-#if !NET20
+#if HAVE_DATA_CONTRACTS
                 Type match;
                 // don't include EntityKey on entities objects... this is a bit hacky
                 if (objectType.AssignableToTypeName("System.Data.Objects.DataClasses.EntityObject", out match))
@@ -362,7 +362,7 @@ namespace Newtonsoft.Json.Serialization
             return serializableMembers;
         }
 
-#if !NET20
+#if HAVE_DATA_CONTRACTS
         private bool ShouldSerializeEntityMember(MemberInfo memberInfo)
         {
             PropertyInfo propertyInfo = memberInfo as PropertyInfo;
@@ -389,7 +389,7 @@ namespace Newtonsoft.Json.Serialization
             InitializeContract(contract);
 
             bool ignoreSerializableAttribute;
-#if !(DOTNET || PORTABLE || PORTABLE40)
+#if HAVE_BINARY_SERIALIZATION
             ignoreSerializableAttribute = IgnoreSerializableAttribute;
 #else
             ignoreSerializableAttribute = true;
@@ -398,11 +398,25 @@ namespace Newtonsoft.Json.Serialization
             contract.MemberSerialization = JsonTypeReflector.GetObjectMemberSerialization(contract.NonNullableUnderlyingType, ignoreSerializableAttribute);
             contract.Properties.AddRange(CreateProperties(contract.NonNullableUnderlyingType, contract.MemberSerialization));
 
+            Func<string, string> extensionDataNameResolver = null;
+
             JsonObjectAttribute attribute = JsonTypeReflector.GetCachedAttribute<JsonObjectAttribute>(contract.NonNullableUnderlyingType);
             if (attribute != null)
             {
                 contract.ItemRequired = attribute._itemRequired;
+                if (attribute.NamingStrategyType != null)
+                {
+                    NamingStrategy namingStrategy = JsonTypeReflector.GetContainerNamingStrategy(attribute);
+                    extensionDataNameResolver = s => namingStrategy.GetDictionaryKey(s);
+                }
             }
+
+            if (extensionDataNameResolver == null)
+            {
+                extensionDataNameResolver = ResolveExtensionDataName;
+            }
+
+            contract.ExtensionDataNameResolver = extensionDataNameResolver;
 
             if (contract.IsInstantiable)
             {
@@ -418,7 +432,7 @@ namespace Newtonsoft.Json.Serialization
                 }
                 else if (contract.MemberSerialization == MemberSerialization.Fields)
                 {
-#if !(DOTNET || PORTABLE40 || PORTABLE)
+#if HAVE_CAS
                     // mimic DataContractSerializer behaviour when populating fields by overriding default creator to create an uninitialized object
                     // note that this is only possible when the application is fully trusted so fall back to using the default constructor (if available) in partial trust
                     if (JsonTypeReflector.FullyTrusted)
@@ -609,15 +623,17 @@ namespace Newtonsoft.Json.Serialization
 
         private ConstructorInfo GetAttributeConstructor(Type objectType)
         {
-            IList<ConstructorInfo> markedConstructors = objectType.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Where(c => c.IsDefined(typeof(JsonConstructorAttribute), true)).ToList();
+            IEnumerator<ConstructorInfo> en = objectType.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Where(c => c.IsDefined(typeof(JsonConstructorAttribute), true)).GetEnumerator();
 
-            if (markedConstructors.Count > 1)
+            if (en.MoveNext())
             {
-                throw new JsonException("Multiple constructors with the JsonConstructorAttribute.");
-            }
-            else if (markedConstructors.Count == 1)
-            {
-                return markedConstructors[0];
+                ConstructorInfo conInfo = en.Current;
+                if (en.MoveNext())
+                {
+                    throw new JsonException("Multiple constructors with the JsonConstructorAttribute.");
+                }
+
+                return conInfo;
             }
 
             // little hack to get Version objects to deserialize correctly
@@ -631,16 +647,25 @@ namespace Newtonsoft.Json.Serialization
 
         private ConstructorInfo GetParameterizedConstructor(Type objectType)
         {
-            IList<ConstructorInfo> constructors = objectType.GetConstructors(BindingFlags.Public | BindingFlags.Instance).ToList();
-
-            if (constructors.Count == 1)
+#if PORTABLE
+            IEnumerable<ConstructorInfo> constructors = objectType.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
+            IEnumerator<ConstructorInfo> en = constructors.GetEnumerator();
+            if (en.MoveNext())
+            {
+                ConstructorInfo conInfo = en.Current;
+                if (!en.MoveNext())
+                {
+                    return conInfo;
+                }
+            }
+#else
+            ConstructorInfo[] constructors = objectType.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
+            if (constructors.Length == 1)
             {
                 return constructors[0];
             }
-            else
-            {
-                return null;
-            }
+#endif
+            return null;
         }
 
         /// <summary>
@@ -750,7 +775,7 @@ namespace Newtonsoft.Json.Serialization
             {
                 contract.IsReference = containerAttribute._isReference;
             }
-#if !NET20
+#if HAVE_DATA_CONTRACTS
             else
             {
                 DataContractAttribute dataContractAttribute = JsonTypeReflector.GetDataContractAttribute(contract.NonNullableUnderlyingType);
@@ -764,7 +789,7 @@ namespace Newtonsoft.Json.Serialization
 
             contract.Converter = ResolveContractConverter(contract.NonNullableUnderlyingType);
 
-            // then see whether object is compadible with any of the built in converters
+            // then see whether object is compatible with any of the built in converters
             contract.InternalConverter = JsonSerializer.GetMatchingConverter(BuiltInConverters, contract.NonNullableUnderlyingType);
 
             if (contract.IsInstantiable
@@ -883,14 +908,14 @@ namespace Newtonsoft.Json.Serialization
 
         private static bool ShouldSkipDeserialized(Type t)
         {
-#if !(NET35 || NET20 || PORTABLE || PORTABLE40)
+#if HAVE_CONCURRENT_COLLECTIONS
             // ConcurrentDictionary throws an error in its OnDeserialized so ignore - http://json.codeplex.com/discussions/257093
             if (t.IsGenericType() && t.GetGenericTypeDefinition() == typeof(ConcurrentDictionary<,>))
             {
                 return true;
             }
 #endif
-#if !(NET35 || NET20)
+#if HAVE_FSHARP_TYPES
             if (t.Name == FSharpUtils.FSharpSetTypeName || t.Name == FSharpUtils.FSharpMapTypeName)
             {
                 return true;
@@ -902,7 +927,7 @@ namespace Newtonsoft.Json.Serialization
 
         private static bool ShouldSkipSerializing(Type t)
         {
-#if !(NET35 || NET20)
+#if HAVE_FSHARP_TYPES
             if (t.Name == FSharpUtils.FSharpSetTypeName || t.Name == FSharpUtils.FSharpMapTypeName)
             {
                 return true;
@@ -1047,7 +1072,7 @@ namespace Newtonsoft.Json.Serialization
             return contract;
         }
 
-#if !(DOTNET || PORTABLE40 || PORTABLE)
+#if HAVE_BINARY_SERIALIZATION
         /// <summary>
         /// Creates a <see cref="JsonISerializableContract"/> for the given type.
         /// </summary>
@@ -1070,7 +1095,7 @@ namespace Newtonsoft.Json.Serialization
         }
 #endif
 
-#if !(NET35 || NET20 || PORTABLE40)
+#if HAVE_DYNAMIC
         /// <summary>
         /// Creates a <see cref="JsonDynamicContract"/> for the given type.
         /// </summary>
@@ -1161,21 +1186,21 @@ namespace Newtonsoft.Json.Serialization
                 return CreateStringContract(objectType);
             }
 
-#if !(DOTNET || PORTABLE40 || PORTABLE)
+#if HAVE_BINARY_SERIALIZATION
             if (!IgnoreSerializableInterface && typeof(ISerializable).IsAssignableFrom(t))
             {
                 return CreateISerializableContract(objectType);
             }
 #endif
 
-#if !(NET35 || NET20 || PORTABLE40)
+#if HAVE_DYNAMIC
             if (typeof(IDynamicMetaObjectProvider).IsAssignableFrom(t))
             {
                 return CreateDynamicContract(objectType);
             }
 #endif
 
-#if !PORTABLE
+#if HAVE_ICONVERTIBLE
             // tested last because it is not possible to automatically deserialize custom IConvertible types
             if (IsIConvertible(t))
             {
@@ -1193,7 +1218,7 @@ namespace Newtonsoft.Json.Serialization
             return (typeCode != PrimitiveTypeCode.Empty && typeCode != PrimitiveTypeCode.Object);
         }
 
-#if !PORTABLE
+#if HAVE_ICONVERTIBLE
         internal static bool IsIConvertible(Type t)
         {
             if (typeof(IConvertible).IsAssignableFrom(t)
@@ -1208,7 +1233,7 @@ namespace Newtonsoft.Json.Serialization
 
         internal static bool CanConvertToString(Type type)
         {
-#if !(DOTNET || PORTABLE40 || PORTABLE)
+#if HAVE_COMPONENT_MODEL
             TypeConverter converter = ConvertUtils.GetConverter(type);
 
             // use the objectType's TypeConverter if it has one and can convert to a string
@@ -1286,7 +1311,7 @@ namespace Newtonsoft.Json.Serialization
                 return type.FullName;
             }
 
-            return string.Format(CultureInfo.InvariantCulture, "{0}.{1}", new object[] { type.Namespace, type.Name });
+            return "{0}.{1}".FormatWith(CultureInfo.InvariantCulture, type.Namespace, type.Name);
         }
 
         /// <summary>
@@ -1300,7 +1325,7 @@ namespace Newtonsoft.Json.Serialization
             List<MemberInfo> members = GetSerializableMembers(type);
             if (members == null)
             {
-                throw new JsonSerializationException("Null collection of seralizable members returned.");
+                throw new JsonSerializationException("Null collection of serializable members returned.");
             }
 
             JsonPropertyCollection properties = new JsonPropertyCollection(type);
@@ -1392,7 +1417,7 @@ namespace Newtonsoft.Json.Serialization
 
         private void SetPropertySettingsFromAttributes(JsonProperty property, object attributeProvider, string name, Type declaringType, MemberSerialization memberSerialization, out bool allowNonPublicAccess)
         {
-#if !NET20
+#if HAVE_DATA_CONTRACTS
             DataContractAttribute dataContractAttribute = JsonTypeReflector.GetDataContractAttribute(declaringType);
 
             MemberInfo memberInfo = attributeProvider as MemberInfo;
@@ -1413,13 +1438,13 @@ namespace Newtonsoft.Json.Serialization
 
             string mappedName;
             bool hasSpecifiedName;
-            if (propertyAttribute != null && propertyAttribute.PropertyName != null)
+            if (propertyAttribute?.PropertyName != null)
             {
                 mappedName = propertyAttribute.PropertyName;
                 hasSpecifiedName = true;
             }
-#if !NET20
-            else if (dataMemberAttribute != null && dataMemberAttribute.Name != null)
+#if HAVE_DATA_CONTRACTS
+            else if (dataMemberAttribute?.Name != null)
             {
                 mappedName = dataMemberAttribute.Name;
                 hasSpecifiedName = true;
@@ -1465,16 +1490,39 @@ namespace Newtonsoft.Json.Serialization
                 property.Order = propertyAttribute._order;
                 property.DefaultValueHandling = propertyAttribute._defaultValueHandling;
                 hasMemberAttribute = true;
+                property.NullValueHandling = propertyAttribute._nullValueHandling;
+                property.ReferenceLoopHandling = propertyAttribute._referenceLoopHandling;
+                property.ObjectCreationHandling = propertyAttribute._objectCreationHandling;
+                property.TypeNameHandling = propertyAttribute._typeNameHandling;
+                property.IsReference = propertyAttribute._isReference;
+
+                property.ItemIsReference = propertyAttribute._itemIsReference;
+                property.ItemConverter = propertyAttribute.ItemConverterType != null ? JsonTypeReflector.CreateJsonConverterInstance(propertyAttribute.ItemConverterType, propertyAttribute.ItemConverterParameters) : null;
+                property.ItemReferenceLoopHandling = propertyAttribute._itemReferenceLoopHandling;
+                property.ItemTypeNameHandling = propertyAttribute._itemTypeNameHandling;
             }
-#if !NET20
-            else if (dataMemberAttribute != null)
+            else
             {
-                property._required = (dataMemberAttribute.IsRequired) ? Required.AllowNull : Required.Default;
-                property.Order = (dataMemberAttribute.Order != -1) ? (int?)dataMemberAttribute.Order : null;
-                property.DefaultValueHandling = (!dataMemberAttribute.EmitDefaultValue) ? (DefaultValueHandling?)DefaultValueHandling.Ignore : null;
-                hasMemberAttribute = true;
-            }
+                property.NullValueHandling = null;
+                property.ReferenceLoopHandling = null;
+                property.ObjectCreationHandling = null;
+                property.TypeNameHandling = null;
+                property.IsReference = null;
+                property.ItemIsReference = null;
+                property.ItemConverter = null;
+                property.ItemReferenceLoopHandling = null;
+                property.ItemTypeNameHandling = null;
+#if HAVE_DATA_CONTRACTS
+                if (dataMemberAttribute != null)
+                {
+                    property._required = (dataMemberAttribute.IsRequired) ? Required.AllowNull : Required.Default;
+                    property.Order = (dataMemberAttribute.Order != -1) ? (int?)dataMemberAttribute.Order : null;
+                    property.DefaultValueHandling = (!dataMemberAttribute.EmitDefaultValue) ? (DefaultValueHandling?)DefaultValueHandling.Ignore : null;
+                    hasMemberAttribute = true;
+                }
 #endif
+            }
+
             if (requiredAttribute != null)
             {
                 property._required = Required.Always;
@@ -1487,7 +1535,7 @@ namespace Newtonsoft.Json.Serialization
                 JsonTypeReflector.GetAttribute<JsonIgnoreAttribute>(attributeProvider) != null
                     // automatically ignore extension data dictionary property if it is public
                 || JsonTypeReflector.GetAttribute<JsonExtensionDataAttribute>(attributeProvider) != null
-#if !(DOTNET || PORTABLE40 || PORTABLE)
+#if HAVE_NON_SERIALIZED_ATTRIBUTE
                 || JsonTypeReflector.GetAttribute<NonSerializedAttribute>(attributeProvider) != null
 #endif
                 ;
@@ -1496,7 +1544,7 @@ namespace Newtonsoft.Json.Serialization
             {
                 bool hasIgnoreDataMemberAttribute = false;
 
-#if !(NET20 || NET35)
+#if HAVE_IGNORE_DATA_MEMBER_ATTRIBUTE
                 hasIgnoreDataMemberAttribute = (JsonTypeReflector.GetAttribute<IgnoreDataMemberAttribute>(attributeProvider) != null);
 #endif
 
@@ -1510,7 +1558,7 @@ namespace Newtonsoft.Json.Serialization
             }
 
             // resolve converter for property
-            // the class type might have a converter but the property converter takes presidence
+            // the class type might have a converter but the property converter takes precedence
             property.Converter = JsonTypeReflector.GetJsonConverter(attributeProvider);
             property.MemberConverter = JsonTypeReflector.GetJsonConverter(attributeProvider);
 
@@ -1519,20 +1567,6 @@ namespace Newtonsoft.Json.Serialization
             {
                 property.DefaultValue = defaultValueAttribute.Value;
             }
-
-            property.NullValueHandling = (propertyAttribute != null) ? propertyAttribute._nullValueHandling : null;
-            property.ReferenceLoopHandling = (propertyAttribute != null) ? propertyAttribute._referenceLoopHandling : null;
-            property.ObjectCreationHandling = (propertyAttribute != null) ? propertyAttribute._objectCreationHandling : null;
-            property.TypeNameHandling = (propertyAttribute != null) ? propertyAttribute._typeNameHandling : null;
-            property.IsReference = (propertyAttribute != null) ? propertyAttribute._isReference : null;
-
-            property.ItemIsReference = (propertyAttribute != null) ? propertyAttribute._itemIsReference : null;
-            property.ItemConverter =
-                (propertyAttribute != null && propertyAttribute.ItemConverterType != null)
-                    ? JsonTypeReflector.CreateJsonConverterInstance(propertyAttribute.ItemConverterType, propertyAttribute.ItemConverterParameters)
-                    : null;
-            property.ItemReferenceLoopHandling = (propertyAttribute != null) ? propertyAttribute._itemReferenceLoopHandling : null;
-            property.ItemTypeNameHandling = (propertyAttribute != null) ? propertyAttribute._itemTypeNameHandling : null;
 
             allowNonPublicAccess = false;
 #pragma warning disable 618
@@ -1602,6 +1636,21 @@ namespace Newtonsoft.Json.Serialization
             }
 
             return propertyName;
+        }
+
+        /// <summary>
+        /// Resolves the name of the extension data. By default no changes are made to extension data names.
+        /// </summary>
+        /// <param name="extensionDataName">Name of the extension data.</param>
+        /// <returns>Resolved name of the extension data.</returns>
+        protected virtual string ResolveExtensionDataName(string extensionDataName)
+        {
+            if (NamingStrategy != null)
+            {
+                return NamingStrategy.GetExtensionDataName(extensionDataName);
+            }
+
+            return extensionDataName;
         }
 
         /// <summary>

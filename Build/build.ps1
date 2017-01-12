@@ -12,6 +12,7 @@
   $treatWarningsAsErrors = $false
   $workingName = if ($workingName) {$workingName} else {"Working"}
   $netCliVersion = "1.0.0-preview3-003171"
+  $nugetUrl = "http://dist.nuget.org/win-x86-commandline/latest/nuget.exe"
   
   $baseDir  = resolve-path ..
   $buildDir = "$baseDir\Build"
@@ -21,15 +22,16 @@
   $releaseDir = "$baseDir\Release"
   $workingDir = "$baseDir\$workingName"
   $workingSourceDir = "$workingDir\Src"
+  $nugetPath = "$buildDir\nuget.exe"
   $builds = @(
-    @{Name = "Newtonsoft.Json.Dotnet"; TestsName = "Newtonsoft.Json.Tests.Dotnet"; BuildFunction = "NetCliBuild"; TestsFunction = "NetCliTests"; Constants="NETSTANDARD1_0"; FinalDir="netstandard1.0"; NuGetDir = "netstandard1.0"; Framework=$null},
-    @{Name = "Newtonsoft.Json.Dotnet"; TestsName = "Newtonsoft.Json.Tests.Dotnet"; BuildFunction = "NetCliBuild"; TestsFunction = "NetCliTests"; Constants="NETSTANDARD1_1"; FinalDir="netstandard1.1"; NuGetDir = "netstandard1.1"; Framework=$null},
-    @{Name = "Newtonsoft.Json"; TestsName = "Newtonsoft.Json.Tests"; BuildFunction = "MSBuildBuild"; TestsFunction = "NUnitTests"; Constants=""; FinalDir="Net45"; NuGetDir = "net45"; Framework="net-4.0"},
-    @{Name = "Newtonsoft.Json.Portable"; TestsName = "Newtonsoft.Json.Tests.Portable"; BuildFunction = "MSBuildBuild"; TestsFunction = "NUnitTests"; Constants="PORTABLE"; FinalDir="Portable"; NuGetDir = "portable-net45+wp80+win8+wpa81"; Framework="net-4.0"},
-    @{Name = "Newtonsoft.Json.Portable40"; TestsName = "Newtonsoft.Json.Tests.Portable40"; BuildFunction = "MSBuildBuild"; TestsFunction = "NUnitTests"; Constants="PORTABLE40"; FinalDir="Portable40"; NuGetDir = "portable-net40+sl5+wp80+win8+wpa81"; Framework="net-4.0"},
-    @{Name = "Newtonsoft.Json.Net40"; TestsName = "Newtonsoft.Json.Tests.Net40"; BuildFunction = "MSBuildBuild"; TestsFunction = "NUnitTests"; Constants="NET40"; FinalDir="Net40"; NuGetDir = "net40"; Framework="net-4.0"},
-    @{Name = "Newtonsoft.Json.Net35"; TestsName = "Newtonsoft.Json.Tests.Net35"; BuildFunction = "MSBuildBuild"; TestsFunction = "NUnitTests"; Constants="NET35"; FinalDir="Net35"; NuGetDir = "net35"; Framework="net-2.0"},
-    @{Name = "Newtonsoft.Json.Net20"; TestsName = "Newtonsoft.Json.Tests.Net20"; BuildFunction = "MSBuildBuild"; TestsFunction = "NUnitTests"; Constants="NET20"; FinalDir="Net20"; NuGetDir = "net20"; Framework="net-2.0"}
+    @{Name = "Newtonsoft.Json.Dotnet"; TestsName = "Newtonsoft.Json.Tests.Dotnet"; BuildFunction = "NetCliBuild"; TestsFunction = "NetCliTests"; FinalDir="netstandard1.0"; NuGetDir = "netstandard1.0"; Framework=$null},
+    @{Name = "Newtonsoft.Json.Dotnet"; TestsName = "Newtonsoft.Json.Tests.Dotnet"; BuildFunction = "NetCliBuild"; TestsFunction = "NetCliTests"; FinalDir="netstandard1.1"; NuGetDir = "netstandard1.1"; Framework=$null},
+    @{Name = "Newtonsoft.Json"; TestsName = "Newtonsoft.Json.Tests"; BuildFunction = "MSBuildBuild"; TestsFunction = "NUnitTests"; FinalDir="Net45"; NuGetDir = "net45"; Framework="net-4.0"},
+    @{Name = "Newtonsoft.Json.Portable"; TestsName = "Newtonsoft.Json.Tests.Portable"; BuildFunction = "MSBuildBuild"; TestsFunction = "NUnitTests"; FinalDir="Portable"; NuGetDir = "portable-net45+wp80+win8+wpa81"; Framework="net-4.0"},
+    @{Name = "Newtonsoft.Json.Portable40"; TestsName = "Newtonsoft.Json.Tests.Portable40"; BuildFunction = "MSBuildBuild"; TestsFunction = "NUnitTests"; FinalDir="Portable40"; NuGetDir = "portable-net40+sl5+wp80+win8+wpa81"; Framework="net-4.0"},
+    @{Name = "Newtonsoft.Json.Net40"; TestsName = "Newtonsoft.Json.Tests.Net40"; BuildFunction = "MSBuildBuild"; TestsFunction = "NUnitTests"; FinalDir="Net40"; NuGetDir = "net40"; Framework="net-4.0"},
+    @{Name = "Newtonsoft.Json.Net35"; TestsName = "Newtonsoft.Json.Tests.Net35"; BuildFunction = "MSBuildBuild"; TestsFunction = "NUnitTests"; FinalDir="Net35"; NuGetDir = "net35"; Framework="net-2.0"},
+    @{Name = "Newtonsoft.Json.Net20"; TestsName = "Newtonsoft.Json.Tests.Net20"; BuildFunction = "MSBuildBuild"; TestsFunction = "NUnitTests"; FinalDir="Net20"; NuGetDir = "net20"; Framework="net-2.0"}
   )
 }
 
@@ -55,6 +57,8 @@ task Clean {
 
 # Build each solution, optionally signed
 task Build -depends Clean {
+  EnsureNuGetExists
+
   Write-Host "Copying source to working source directory $workingSourceDir"
   robocopy $sourceDir $workingSourceDir /MIR /NP /XD bin obj TestResults AppPackages $packageDirs .vs artifacts /XF *.suo *.user *.lock.json | Out-Default
 
@@ -131,7 +135,7 @@ task Package -depends Build {
     Write-Host "Building NuGet package with ID $packageId and version $nugetVersion" -ForegroundColor Green
     Write-Host
 
-    exec { .\Tools\NuGet\NuGet.exe pack $nuspecPath -Symbols }
+    exec { & $nugetPath pack $nuspecPath -Symbols }
     exec { dotnet pack $workingSourceDir\Newtonsoft.Json\project.json -c Release }
     move -Path .\*.nupkg -Destination $workingDir\NuGet
   }
@@ -191,14 +195,22 @@ function MSBuildBuild($build)
   Write-Host
   Write-Host "Restoring $workingSourceDir\$name.sln" -ForegroundColor Green
   [Environment]::SetEnvironmentVariable("EnableNuGetPackageRestore", "true", "Process")
-  exec { .\Tools\NuGet\NuGet.exe update -self }
-  exec { .\Tools\NuGet\NuGet.exe restore "$workingSourceDir\$name.sln" -verbosity detailed -configfile $workingSourceDir\nuget.config | Out-Default } "Error restoring $name"
+  exec { & $nugetPath update -self }
+  exec { & $nugetPath restore "$workingSourceDir\$name.sln" -verbosity detailed -configfile $workingSourceDir\nuget.config | Out-Default } "Error restoring $name"
 
-  $constants = GetConstants $build.Constants $signAssemblies
+  $additionalConstants = switch($signAssemblies) { $true { "SIGNED" } default { "" } }
 
   Write-Host
   Write-Host "Building $workingSourceDir\$name.sln" -ForegroundColor Green
-  exec { msbuild "/t:Clean;Rebuild" /p:Configuration=Release "/p:CopyNuGetImplementations=true" "/p:Platform=Any CPU" "/p:PlatformTarget=AnyCPU" /p:OutputPath=bin\Release\$finalDir\ /p:AssemblyOriginatorKeyFile=$signKeyPath "/p:SignAssembly=$signAssemblies" "/p:TreatWarningsAsErrors=$treatWarningsAsErrors" "/p:VisualStudioVersion=14.0" /p:DefineConstants=`"$constants`" "$workingSourceDir\$name.sln" | Out-Default } "Error building $name"
+  exec { msbuild "/t:Clean;Rebuild" /p:Configuration=Release "/p:CopyNuGetImplementations=true" "/p:Platform=Any CPU" "/p:PlatformTarget=AnyCPU" /p:OutputPath=bin\Release\$finalDir\ /p:AssemblyOriginatorKeyFile=$signKeyPath "/p:SignAssembly=$signAssemblies" "/p:TreatWarningsAsErrors=$treatWarningsAsErrors" "/p:VisualStudioVersion=14.0" "/p:AdditionalConstants=$additionalConstants" "$workingSourceDir\$name.sln" | Out-Default } "Error building $name"
+}
+
+function EnsureNuGetExists()
+{
+  if (!(Test-Path $nugetPath)) {
+    Write-Host "Couldn't find nuget.exe. Downloading from $nugetUrl to $nugetPath"
+    (New-Object System.Net.WebClient).DownloadFile($nugetUrl, $nugetPath)
+  }
 }
 
 function NetCliBuild($build)
@@ -271,13 +283,6 @@ function GetNuGetVersion()
   return $nugetVersion
 }
 
-function GetConstants($constants, $includeSigned)
-{
-  $signed = switch($includeSigned) { $true { ";SIGNED" } default { "" } }
-
-  return "CODE_ANALYSIS;TRACE;$constants$signed"
-}
-
 function GetVersion($majorVersion)
 {
     $now = [DateTime]::Now
@@ -347,15 +352,16 @@ function Update-Project {
     [string] $sign
   )
 
-  $file = switch($sign) { $true { $signKeyPath } default { $null } }
+    $file = switch($sign) { $true { $signKeyPath } default { $null } }
+    $signed = switch($sign) { $true { ";SIGNED" } default { "" } }
+    $constants = "CODE_ANALYSIS;TRACE$signed"
+    $json = (Get-Content $projectPath) -join "`n" | ConvertFrom-Json
+    $options = @{"warningsAsErrors" = $true; "xmlDoc" = $true; "keyFile" = $file; "define" = ($constants -split ";") }
+    Add-Member -InputObject $json -MemberType NoteProperty -Name "buildOptions" -Value $options -Force
 
-  $json = (Get-Content $projectPath) -join "`n" | ConvertFrom-Json
-  $options = @{"warningsAsErrors" = $true; "xmlDoc" = $true; "keyFile" = $file; "define" = ((GetConstants "dotnet" $sign) -split ";") }
-  Add-Member -InputObject $json -MemberType NoteProperty -Name "buildOptions" -Value $options -Force
-
-  $json.version = GetNuGetVersion
-
-  ConvertTo-Json $json -Depth 10 | Set-Content $projectPath
+    $json.version = GetNuGetVersion
+    
+    ConvertTo-Json $json -Depth 10 | Set-Content $projectPath  
 }
 
 function Execute-Command($command) {

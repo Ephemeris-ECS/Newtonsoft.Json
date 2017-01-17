@@ -1387,14 +1387,25 @@ namespace Newtonsoft.Json.Serialization
                                 throw JsonSerializationException.Create(reader, "Unexpected end when deserializing object.");
                             }
 
+                            #region dictionary population merge
+                            // coldridj 2017-01-17
+
+                            object currentValue = null;
+                            if (dictionary.Keys.Cast<object>().Contains(keyValue))
+                            {
+                                currentValue = dictionary[keyValue];
+                            }
+
+                            #endregion
+
                             object itemValue;
                             if (dictionaryValueConverter != null && dictionaryValueConverter.CanRead)
                             {
-                                itemValue = DeserializeConvertable(dictionaryValueConverter, reader, contract.DictionaryValueType, null);
+                                itemValue = DeserializeConvertable(dictionaryValueConverter, reader, contract.DictionaryValueType, currentValue);
                             }
                             else
                             {
-                                itemValue = CreateValueInternal(reader, contract.DictionaryValueType, contract.ItemContract, null, contract, containerProperty, null);
+                                itemValue = CreateValueInternal(reader, contract.DictionaryValueType, contract.ItemContract, null, contract, containerProperty, currentValue);
                             }
 
                             dictionary[keyValue] = itemValue;
